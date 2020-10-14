@@ -1,0 +1,80 @@
+---
+title: 'Analyzing Age and Previous Marital Status with a Logistic Regression '
+author: "Allen Li"
+date: "15 Oct 2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(ggplot2)
+library(plyr)
+library(dplyr)
+```
+
+## Abstract
+Using the data from the 2017 General Social Survey, the relationship between the ages of respondents and whether or not they have ever married was considered. A logistic regression model was fit to the data. The regression parameters were shown to be significant, so it can be concluded that there is a relationship between age and previously-married status.
+
+## Introduction
+While it may seem obvious that there would be a relationship between a person's age and whether or not they have ever married, this relationship has yet to be explored in great detail. Using the data from the 2017 General Social Survey, the respondents' ages and previously-married statuses were analyzed and a logistic regression model was fitted. This model can be used to investigate the strength of the relationship as well as make predictions from new data.
+
+## Data
+```{r, results='hide'}
+setwd('C:/Users/Allen/Desktop')
+gss <- read.csv('gss.csv')
+#gss <- head(gss, 250)
+age = gss$age
+ever_married = revalue(gss$ever_married, c("No" = 0, "Yes" = 1))
+dat <- data.frame(age, ever_married)
+dat <- filter(dat, age >= 16 & (ever_married == 0 | ever_married == 1))
+unmarried <- filter(gss, ever_married == "No")
+mean(unmarried$age)
+sd(unmarried$age)
+married <- filter(gss, ever_married == "Yes")
+mean(married$age)
+sd(married$age)
+hist(unmarried$age, main="Ages of Never Married Respondents", xlab="Age")
+hist(married$age, main="Ages of Previously Married Respondents", xlab="Age")
+```
+The data is the responses to the age and ever married questions from the 2017 General Social Survey, and it was chosen because it is large, comprehensive, and readily available. Those who were aged below 16 were excluded, since they legally cannot get married. The data was collected by calling randomly selected home phone numbers and taking the survey over the phone. The target population of the survey is the entire population of Canada. The frame population is everybody who owns a home phone, and the sample population is everybody who tends to answer random calls to their home phone. This presents a major drawback, since the sample population may not represent the target population very well. The questionnaire itself was clear and effective. Another drawback is the fact that everyone over the age of 80 was represented with a single 80+ category, which may cause issues with the regression. The respondents who were never married had an average age of 38.47 with standard deviation 16.14. The respondents who were previously married had an average age of 58.13 with standard deviation 14.89. This suggests that there is some difference between the distribution of ages of the two groups.
+
+## Model
+A logistic regression model was deemed to be most appropriate for an continuous independent variable and binary dependent variable. The formula for the model is given by 
+\begin{math}
+log(\frac{p}{1-p}) = \beta_0 + \beta_1x
+\end{math}
+where p is the probability of the event, $\beta_0$ is the log y intercept, and $\beta_1$ represents the change in log odds per increase of x. Note that p will always fall between 0 and 1.
+
+## Results
+```{r}
+logit_model <- glm(as.numeric(ever_married)~age, data=dat, family="binomial")
+x <- seq(16, 80, 1)
+y <- predict(logit_model, data.frame(age = x), type="response")
+ggplot(dat, aes(age, ever_married)) + 
+  geom_point(alpha = 0.005) + 
+  geom_smooth(data = data.frame(x,y), aes(x, y+1)) +
+  labs(x = "Age", y = "Ever Married", title = "Logistic regression between age and ever married")
+summary(logit_model)
+```
+The graph above displays the fitted logistic regression model plotted on top of a scatterplot of the data. It can be seen that there are many previously married young people and never married older people, which is why the sigmoid curve is not very steep. The model has parameters \begin{math} \beta_0 = -2.799086 \end{math} and \begin{math} \beta_1 = 0.075531 \end{math}, both of which have a p-value of less than 2e-16, which suggests that this regression is significant.
+
+## Discussion
+Since the regression was shown to be significant, it can be concluded that there is a relationship between a respondents age and whether or not they have ever been married. The y intercept of the model occurs at 0.001585. When age = 37.06, the model predicts a 0.5 probability of being married, which means using a threshold of 0.5 would result in everyone younger than 37.06 being predicted as never married and everyone older than 37.06 being previously married. Using such a threshhold, 54.32% of never married people would be correctly classified as unmarried, while 88.48% of previously married people would be correctly classified as married.
+
+# Weaknesses
+As outlined previously, the fact that everyone with age 80+ was classified as 80 could have caused problems with fitting the logistic regression model, however the number of people whose ages were reported as 80+ was probably too small to cause any major issues. The study was conducted by randomly calling home phone numbers, so the frame population may not represent the target population very well, since people who own a home phone and answer random calls may have certain traits that are different from those who don't. As a result, the fitted model may not be accurate when used for predictions regarding the general population. 
+
+# Next Steps
+A next step would be to do another regression with multiple other variable in addition to age, such as gender and income. A multivariable regression in this way would likely provide more insight into factors of marriage. The analysis could also be re-done with a different dataset. The government would likely have comprehensive, unbiased data regarding the marital statuses and ages of the population.
+
+# GitHub Repository
+https://github.com/youhjjhhhjj/ztvEhBbGxj
+
+## References
+Alexander, R. (2020, May 17). Telling Stories With Data. Retrieved October 13, 2020, from https://www.tellingstorieswithdata.com/
+
+Statistics Canada. (2017, February 27). The General Social Survey: An Overview. Retrieved October 13, 2020, from https://www150.statcan.gc.ca/n1/pub/89f0115x/89f0115x2013001-eng.htm
+
+
